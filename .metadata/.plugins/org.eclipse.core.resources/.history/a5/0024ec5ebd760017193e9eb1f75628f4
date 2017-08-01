@@ -1,0 +1,6 @@
+package com.xiaoxiaopm.dao;
+
+public class WorflowController {
+
+    private WorkflowService workflowService;
+}

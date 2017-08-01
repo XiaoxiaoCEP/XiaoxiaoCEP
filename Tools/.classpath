@@ -76,5 +76,6 @@
 	<classpathentry kind="lib" path="Library/apache-maven-3.5.0/lib/maven-builder-support-3.5.0.jar"/>
 	<classpathentry kind="lib" path="Library/apache-maven-3.5.0/lib/maven-core-3.5.0.jar"/>
 	<classpathentry kind="lib" path="Library/apache-maven-3.5.0/lib/maven-plugin-api-3.5.0.jar"/>
+	<classpathentry kind="lib" path="Library/hibernate-release-5.2.10.Final/lib/optional/ehcache/slf4j-api-1.7.7.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -1,7 +1,20 @@
 package com.xiaoxiaopm.model;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name="Workflow")
 public class Workflow {
+    
+    @Id
+    @Column(name="workflowID")
     private String workflowID;
+    
     private String workflowName;
     
     public String getWorkflowID() {

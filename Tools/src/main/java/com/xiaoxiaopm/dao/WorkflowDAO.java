@@ -6,7 +6,13 @@ import com.xiaoxiaopm.model.Workflow;
 
 public interface WorkflowDAO {
 
-    public void save(Workflow workflow);
+    public void addWorkflow(Workflow workflow);
+
+    public void updateWorkflow(Workflow workflow);
     
-    public List<Workflow> list();
+    public Workflow getWorkflowById(String workflowID);
+    
+    public void removeWorkflow(String workflowID);
+    
+    public List<Workflow> listWorkflows();
 }

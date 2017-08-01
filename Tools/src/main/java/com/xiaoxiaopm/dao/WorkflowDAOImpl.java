@@ -5,10 +5,16 @@ import java.util.List;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Repository;
 
 import com.xiaoxiaopm.model.Workflow;
 
+@Repository
 public class WorkflowDAOImpl implements WorkflowDAO {
+    
+    private static final Logger logger = LoggerFactory.getLogger(WorkflowDAOImpl.class);
     
     private SessionFactory sessionFactory;
     
@@ -18,21 +24,53 @@ public class WorkflowDAOImpl implements WorkflowDAO {
     }
 
     @Override
-    public void save(Workflow workflow) {
-        Session session = this.sessionFactory.openSession();
+    public void addWorkflow(Workflow workflow) {
+        Session session = this.sessionFactory.getCurrentSession();
         Transaction tx = session.beginTransaction();
         session.persist(workflow);
         tx.commit();
-        session.close();
+        
+        //Logging
+        logger.info("Workflow is saved successfully, " + workflow.toString());
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<Workflow> list() {
-        Session session = this.sessionFactory.openSession();
-        List<Workflow> personList = session.createQuery("from Person").list();
-        session.close();
+    public List<Workflow> listWorkflows() {
+        Session session = this.sessionFactory.getCurrentSession();
+        List<Workflow> personList = session.createQuery("from Workflow").list();
         return personList;
+    }
+
+    @Override
+    public void updateWorkflow(Workflow workflow) {
+        //
+        Session session = this.sessionFactory.getCurrentSession();
+        Transaction tx = session.beginTransaction();
+        session.update(workflow);
+        tx.commit();
+    }
+
+    @Override
+    public Workflow getWorkflowById(String workflowID) {
+        //
+        Session session = this.sessionFactory.getCurrentSession();
+        Workflow workflow =
+                (Workflow)session.load(Workflow.class, workflowID);
+        
+        return workflow;
+    }
+
+    @Override
+    public void removeWorkflow(String workflowID) {
+        //
+        Session session = this.sessionFactory.getCurrentSession();
+        Workflow workflow =
+                (Workflow)session.load(Workflow.class, workflowID);
+        
+        if(null != workflow) {
+           session.delete(workflow); 
+        }
     }
 
 }

@@ -1,0 +1,28 @@
+package com.xiaoxiaopm.dao;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.xiaoxiaopm.model.Workflow;
+import com.xiaoxiaopm.service.WorkflowService;
+
+public class WorflowController {
+
+    private WorkflowService workflowService;
+    
+    @Autowired(required=true)
+    @Qualifier(value="WorkflowService")
+    public void setWorkflowService(WorkflowService workflowService) {
+        this.workflowService = workflowService;
+    }
+    
+    @RequestMapping(value="/workflows", method=RequestModel.GET)
+    public String listWorkflows(Model model) {
+        model.addAttribute("workflow", new Workflow());
+        model.addAttribute("listWorkflows", this.workflowService.listWorkflows());
+        
+        return "Workflow";
+    }
+}

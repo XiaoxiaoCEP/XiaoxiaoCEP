@@ -1,0 +1,9 @@
+package com.xiaoxiaopm.dao;
+
+public class WorflowController {
+
+    private WorkflowService workflowService;
+    
+    @Autowired(required=true)
+    @Qualifier(value="WorkflowService")
+}

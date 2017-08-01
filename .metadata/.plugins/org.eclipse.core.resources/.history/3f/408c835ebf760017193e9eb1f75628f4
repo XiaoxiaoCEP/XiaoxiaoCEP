@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+
+	<!-- The definition of the Root Spring Container shared by all Servlets and Filters -->
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>/WEB-INF/spring/root-context.xml</param-value>
+	</context-param>
+	
+	<!-- Creates the Spring Container shared by all Servlets and Filters -->
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
+	<!-- Processes application requests -->
+	<servlet>
+		<servlet-name>appServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>/WEB-INF/spring/appServlet/servlet-context.xml</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+		
+	<servlet-mapping>
+		<servlet-name>appServlet</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+
+</web-app>
+Most of the part is boiler plate code, most important part is the spring context file location where we will configure our spring beans and services. If you want, you can change them according to your project requirements.
+ 
+Hibernate Entity Bean
+We are using JPA annotations in our entity bean class, however we can also have a simple java bean and mapping details in the xml file. In that case, we need to provide mapping file details while configuring Hibernate SessionFactory in spring bean configurations.
+package com.xiaoxiaopm.model;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+/**
+ * Entity bean with JPA annotations
+ * Hibernate provides JPA implementation
+ * @author pankaj
+ *
+ */
+@Entity
+@Table(name="PERSON")
+public class Workflow {
+
+	@Id
+	@Column(name="id")
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	private int id;
+	
+	private String name;
+	
+	private String country;
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getCountry() {
+		return country;
+	}
+
+	public void setCountry(String country) {
+		this.country = country;
+	}
+	
+	@Override
+	public String toString(){
+		return "id="+id+", name="+name+", country="+country;
+	}
+}
+Our entity bean maps to PERSON table in MySQL database, notice that I have not annotated “name” and “country” fields with @Column annotation because they are of same name. Below SQL script shows the table details.
+CREATE TABLE `Workflow` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL DEFAULT '',
+  `country` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+Hibernate DAO Implementation
+We will create WorkflowDAO interface to declare the methods that we will use in our project. Next, we will provide hibernate specific implementation for it.
+package com.xiaoxiaopm.dao;
+
+import java.util.List;
+
+import com.xiaoxiaopm.model.Workflow;
+
+public interface WorkflowDAO {
+
+	public void addWorkflow(Workflow p);
+	public void updateWorkflow(Workflow p);
+	public List<Workflow> listWorkflows();
+	public Workflow getWorkflowById(int id);
+	public void removeWorkflow(int id);
+}
+Hibernate specific DAO implementation looks like below.
+package com.xiaoxiaopm.dao;
+
+import java.util.List;
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Repository;
+
+import com.xiaoxiaopm.model.Workflow;
+
+@Repository
+public class WorkflowDAOImpl implements WorkflowDAO {
+	
+	private static final Logger logger = LoggerFactory.getLogger(WorkflowDAOImpl.class);
+
+	private SessionFactory sessionFactory;
+	
+	public void setSessionFactory(SessionFactory sf){
+		this.sessionFactory = sf;
+	}
+
+	@Override
+	public void addWorkflow(Workflow p) {
+		Session session = this.sessionFactory.getCurrentSession();
+		session.persist(p);
+		logger.info("Workflow saved successfully, Workflow Details="+p);
+	}
+
+	@Override
+	public void updateWorkflow(Workflow p) {
+		Session session = this.sessionFactory.getCurrentSession();
+		session.update(p);
+		logger.info("Workflow updated successfully, Workflow Details="+p);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Workflow> listWorkflows() {
+		Session session = this.sessionFactory.getCurrentSession();
+		List<Workflow> workflowsList = session.createQuery("from Workflow").list();
+		for(Workflow p : workflowsList){
+			logger.info("Workflow List::"+p);
+		}
+		return workflowsList;
+	}
+
+	@Override
+	public Workflow getWorkflowById(int id) {
+		Session session = this.sessionFactory.getCurrentSession();		
+		Workflow p = (Workflow) session.load(Workflow.class, new Integer(id));
+		logger.info("Workflow loaded successfully, Workflow details="+p);
+		return p;
+	}
+
+	@Override
+	public void removeWorkflow(int id) {
+		Session session = this.sessionFactory.getCurrentSession();
+		Workflow p = (Workflow) session.load(Workflow.class, new Integer(id));
+		if(null != p){
+			session.delete(p);
+		}
+		logger.info("Workflow deleted successfully, workflow details="+p);
+	}
+
+}
+Notice that I am not using Hibernate Transaction, that is because it will be taken care by Spring framework.
+Spring Service Classes
+Here are our service classes that are using Hibernate DAO classes to work with Workflow objects.
+
+package com.xiaoxiaopm.service;
+
+import java.util.List;
+
+import com.xiaoxiaopm.model.Workflow;
+
+public interface WorkflowService {
+
+	public void addWorkflow(Workflow p);
+	public void updateWorkflow(Workflow p);
+	public List<Workflow> listWorkflows();
+	public Workflow getWorkflowById(int id);
+	public void removeWorkflow(int id);
+	
+}
+package com.xiaoxiaopm.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.xiaoxiaopm.dao.WorkflowDAO;
+import com.xiaoxiaopm.model.Workflow;
+
+@Service
+public class WorkflowServiceImpl implements WorkflowService {
+	
+	private WorkflowDAO workflowDAO;
+
+	public void setWorkflowDAO(WorkflowDAO workflowDAO) {
+		this.workflowDAO = workflowDAO;
+	}
+
+	@Override
+	@Transactional
+	public void addWorkflow(Workflow p) {
+		this.workflowDAO.addWorkflow(p);
+	}
+
+	@Override
+	@Transactional
+	public void updateWorkflow(Workflow p) {
+		this.workflowDAO.updateWorkflow(p);
+	}
+
+	@Override
+	@Transactional
+	public List<Workflow> listWorkflows() {
+		return this.workflowDAO.listWorkflows();
+	}
+
+	@Override
+	@Transactional
+	public Workflow getWorkflowById(int id) {
+		return this.workflowDAO.getWorkflowById(id);
+	}
+
+	@Override
+	@Transactional
+	public void removeWorkflow(int id) {
+		this.workflowDAO.removeWorkflow(id);
+	}
+
+}
+Notice that spring declarative transaction management is applied by using @Transactional annotation.
+Spring Controller Class
+Our DAO and Service classes are ready, it’s time to write our controller class that will take care of client requests and use service classes to perform database specific operations and then return the view pages.
+package com.xiaoxiaopm;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import com.xiaoxiaopm.model.Workflow;
+import com.xiaoxiaopm.service.WorkflowService;
+
+@Controller
+public class WorkflowController {
+	
+	private WorkflowService workflowService;
+	
+	@Autowired(required=true)
+	@Qualifier(value="workflowService")
+	public void setWorkflowService(WorkflowService ps){
+		this.workflowService = ps;
+	}
+	
+	@RequestMapping(value = "/workflows", method = RequestMethod.GET)
+	public String listWorkflows(Model model) {
+		model.addAttribute("workflow", new Workflow());
+		model.addAttribute("listWorkflows", this.workflowService.listWorkflows());
+		return "workflow";
+	}
+	
+	//For add and update workflow both
+	@RequestMapping(value= "/workflow/add", method = RequestMethod.POST)
+	public String addWorkflow(@ModelAttribute("workflow") Workflow p){
+		
+		if(p.getId() == 0){
+			//new workflow, add it
+			this.workflowService.addWorkflow(p);
+		}else{
+			//existing workflow, call update
+			this.workflowService.updateWorkflow(p);
+		}
+		
+		return "redirect:/workflows";
+		
+	}
+	
+	@RequestMapping("/remove/{id}")
+    public String removeWorkflow(@PathVariable("id") int id){
+		
+        this.workflowService.removeWorkflow(id);
+        return "redirect:/workflows";
+    }
+ 
+    @RequestMapping("/edit/{id}")
+    public String editWorkflow(@PathVariable("id") int id, Model model){
+        model.addAttribute("workflow", this.workflowService.getWorkflowById(id));
+        model.addAttribute("listWorkflows", this.workflowService.listWorkflows());
+        return "workflow";
+    }
+	
+}
+Notice that I am using @Controller annotation, so that Spring framework will treat it as a Controller class to handle client requests. Also I am using @Autowired and @Qualifier annotations for injecting WorkflowService, we could have done it in the spring context xml file too.
+Recommended Read: Spring Bean Autowiring
+Spring Bean Configuration
+Our services are ready, all we need is to wire them through spring bean configurations. Our root-context.xml file is empty, so we will look only into servlet-context.xml file.
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+
+	<!-- DispatcherServlet Context: defines this servlet's request-processing 
+		infrastructure -->
+
+	<!-- Enables the Spring MVC @Controller programming model -->
+	<annotation-driven />
+
+	<!-- Handles HTTP GET requests for /resources/** by efficiently serving 
+		up static resources in the ${webappRoot}/resources directory -->
+	<resources mapping="/resources/**" location="/resources/" />
+
+	<!-- Resolves views selected for rendering by @Controllers to .jsp resources 
+		in the /WEB-INF/views directory -->
+	<beans:bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<beans:property name="prefix" value="/WEB-INF/views/" />
+		<beans:property name="suffix" value=".jsp" />
+	</beans:bean>
+
+	<beans:bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<beans:property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<beans:property name="url"
+			value="jdbc:mysql://localhost:3306/XiaoxiaoCEP" />
+		<beans:property name="username" value="pankaj" />
+		<beans:property name="password" value="pankaj123" />
+	</beans:bean>
+
+	<!-- Hibernate 4 SessionFactory Bean definition -->
+	<beans:bean id="hibernate4AnnotatedSessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<beans:property name="dataSource" ref="dataSource" />
+		<beans:property name="annotatedClasses">
+			<beans:list>
+				<beans:value>com.xiaoxiaopm.model.Workflow</beans:value>
+			</beans:list>
+		</beans:property>
+		<beans:property name="hibernateProperties">
+			<beans:props>
+				<beans:prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect
+				</beans:prop>
+				<beans:prop key="hibernate.show_sql">true</beans:prop>
+			</beans:props>
+		</beans:property>
+	</beans:bean>
+	
+	<beans:bean id="workflowDAO" class="com.xiaoxiaopm.dao.WorkflowDAOImpl">
+		<beans:property name="sessionFactory" ref="hibernate4AnnotatedSessionFactory" />
+	</beans:bean>
+	<beans:bean id="workflowService" class="com.xiaoxiaopm.service.WorkflowServiceImpl">
+		<beans:property name="workflowDAO" ref="workflowDAO"></beans:property>
+	</beans:bean>
+	<context:component-scan base-package="com.xiaoxiaopm" />
+	
+	<tx:annotation-driven transaction-manager="transactionManager"/>
+	
+	<beans:bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<beans:property name="sessionFactory" ref="hibernate4AnnotatedSessionFactory" />
+	</beans:bean>
+
+</beans:beans>
